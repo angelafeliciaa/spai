@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Robot Camera Stream</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <h1>Robot Camera & Microphone Stream</h1>
+  
+  <div class="controls">
+    <label>
+      <input type="checkbox" id="enableCamera" checked />
+      Enable Camera
+    </label>
+    <label>
+      <input type="checkbox" id="enableMic" checked />
+      Enable Microphone
+    </label>
+  </div>
+  
+  <button id="toggleCapture">Start Capture</button>
+  <video id="preview" autoplay muted></video>
+
+  <script src="app.js"></script>
+</body>
+</html>
