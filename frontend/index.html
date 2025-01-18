@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Robot Camera Stream</title>
+  <title>Robot Camera & Microphone Stream</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -20,7 +20,9 @@
     </label>
   </div>
   
-  <button id="toggleCapture">Start Capture</button>
+  <button id="startCapture">Start Capture</button>
+  <button id="stopCapture" disabled>Stop Capture</button>
+  
   <video id="preview" autoplay muted></video>
 
   <script src="app.js"></script>

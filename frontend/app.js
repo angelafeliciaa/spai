@@ -1,13 +1,14 @@
 // app.js
 
 const videoElement = document.getElementById('preview');
-const toggleButton = document.getElementById('toggleCapture');
+const startButton = document.getElementById('startCapture');
+const stopButton = document.getElementById('stopCapture');
 const cameraCheckbox = document.getElementById('enableCamera');
 const micCheckbox = document.getElementById('enableMic');
 
 // Endpoints for HTTP interactions
-const HTTP_URL = 'http://YOUR_LLM_BACKEND_DOMAIN/upload';        // For video data
-const LLM_TEXT_URL = 'http://YOUR_LLM_BACKEND_DOMAIN/transcript'; // For text data
+const HTTP_URL = 'http://YOUR_LLM_BACKEND_DOMAIN/upload';
+const LLM_TEXT_URL = 'http://YOUR_LLM_BACKEND_DOMAIN/transcript';
 
 let mediaRecorder;
 let localStream;
@@ -38,122 +39,125 @@ if (SpeechRecognition) {
   };
 }
 
-toggleButton.addEventListener('click', toggleCapture);
+// Attach event listeners to separate buttons
+startButton.addEventListener('click', startCapture);
+stopButton.addEventListener('click', stopCapture);
 
-function toggleCapture() {
-  if (!capturing) {
-    // Determine constraints based on checkbox selections
-    const constraints = {
-      video: cameraCheckbox.checked,
-      audio: micCheckbox.checked
-    };
-    
-    if (!constraints.video && !constraints.audio) {
-      alert('Please enable at least one media device (camera or microphone) to start capturing.');
-      return;
-    }
-    
-    navigator.mediaDevices.getUserMedia(constraints)
-      .then(stream => {
-        localStream = stream;
-        
-        // If camera is enabled, attach video stream for preview and recording
-        if (constraints.video) {
-          videoElement.srcObject = stream;
-          
-          const mimeType = MediaRecorder.isTypeSupported('video/webm; codecs=vp9') ?
-            'video/webm; codecs=vp9' : 'video/webm';
+function startCapture() {
+  if (capturing) return; // Prevent multiple starts
 
-          mediaRecorder = new MediaRecorder(stream, { mimeType });
-          chunks = [];
-          mediaRecorder.ondataavailable = event => {
-            if (event.data.size > 0) {
-              chunks.push(event.data);
-            }
-          };
-          mediaRecorder.start(1000); // capture video in chunks every second
-        }
+  const constraints = {
+    video: cameraCheckbox.checked,
+    audio: micCheckbox.checked
+  };
+  
+  if (!constraints.video && !constraints.audio) {
+    alert('Please enable at least one media device (camera or microphone) to start capturing.');
+    return;
+  }
+  
+  navigator.mediaDevices.getUserMedia(constraints)
+    .then(stream => {
+      localStream = stream;
+      
+      if (constraints.video) {
+        videoElement.srcObject = stream;
         
-        // If microphone is enabled and SpeechRecognition is available, start recognition
-        if (constraints.audio && SpeechRecognition) {
-          usingSpeechRecognition = true;
-          try {
-            recognition.start();
-            console.log('Speech recognition started.');
-          } catch (e) {
-            console.error('Speech recognition failed to start:', e);
+        const mimeType = MediaRecorder.isTypeSupported('video/webm; codecs=vp9') ?
+          'video/webm; codecs=vp9' : 'video/webm';
+
+        mediaRecorder = new MediaRecorder(stream, { mimeType });
+        chunks = [];
+        mediaRecorder.ondataavailable = event => {
+          if (event.data.size > 0) {
+            chunks.push(event.data);
           }
-        } else if (constraints.audio) {
-          console.warn('Speech recognition not supported in this browser.');
+        };
+        mediaRecorder.start(1000); // capture video in chunks every second
+      }
+      
+      if (constraints.audio && SpeechRecognition) {
+        usingSpeechRecognition = true;
+        try {
+          recognition.start();
+          console.log('Speech recognition started.');
+        } catch (e) {
+          console.error('Speech recognition failed to start:', e);
         }
+      } else if (constraints.audio) {
+        console.warn('Speech recognition not supported in this browser.');
+      }
 
-        capturing = true;
-        toggleButton.textContent = 'Stop Capture';
-        console.log('Media capture started.');
-      })
-      .catch(error => {
-        console.error('Error accessing media devices.', error);
-      });
-  } else {
-    // Stop capturing
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      mediaRecorder.stop();
-    }
-    
-    // Stop video stream tracks if video was used
-    if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
-    }
-    
-    // Stop speech recognition if it was started
-    if (usingSpeechRecognition && recognition) {
-      recognition.stop();
-      usingSpeechRecognition = false;
-      console.log('Speech recognition stopped.');
-    }
+      capturing = true;
+      startButton.disabled = true;
+      stopButton.disabled = false;
+      console.log('Media capture started.');
+    })
+    .catch(error => {
+      console.error('Error accessing media devices.', error);
+    });
+}
 
-    videoElement.srcObject = null;
-    capturing = false;
-    toggleButton.textContent = 'Start Capture';
-    console.log('Media capture stopped.');
+function stopCapture() {
+  if (!capturing) return; // If not capturing, do nothing
+  
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+  }
+  
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop());
+  }
+  
+  if (usingSpeechRecognition && recognition) {
+    recognition.stop();
+    usingSpeechRecognition = false;
+    console.log('Speech recognition stopped.');
+  }
+  
+  videoElement.srcObject = null;
+  capturing = false;
+  startButton.disabled = false;
+  stopButton.disabled = true;
+  console.log('Media capture stopped.');
 
-    // Send video data if captured
-    if (chunks.length > 0) {
-      const combinedBlob = new Blob(chunks, { type: 'video/webm' });
-      sendData(combinedBlob);
-      chunks = [];
-    }
+  if (chunks.length > 0) {
+    const combinedBlob = new Blob(chunks, { type: 'video/webm' });
+    sendData(combinedBlob);
+    chunks = [];
   }
 }
 
 function sendData(blob) {
-  const formData = new FormData();
-  formData.append('file', blob, 'capture.webm');
-  
-  fetch(HTTP_URL, {
-    method: 'POST',
-    body: formData
-  })
-  .then(response => response.json())
-  .then(data => {
-    console.log('Server response:', data);
-  })
-  .catch(error => {
-    console.error('Error sending video data:', error);
-  });
-}
+    console.log('Sending video blob of size:', blob.size, 'bytes');  // Log blob size
+    const formData = new FormData();
+    formData.append('file', blob, 'capture.webm');
+    
+    fetch(HTTP_URL, {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      console.log('Server response:', data);
+    })
+    .catch(error => {
+      console.error('Error sending video data:', error);
+    });
+  }
 
-function sendTranscript(text) {
-  fetch(LLM_TEXT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ transcript: text })
-  })
-  .then(response => response.json())
-  .then(data => {
-    console.log('Transcript sent. Server response:', data);
-  })
-  .catch(error => {
-    console.error('Error sending transcript:', error);
-  });
-}
+  function sendTranscript(text) {
+    console.log('Sending transcript:', text);  // Log transcript text
+    fetch(LLM_TEXT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript: text })
+    })
+    .then(response => response.json())
+    .then(data => {
+      console.log('Transcript sent. Server response:', data);
+    })
+    .catch(error => {
+      console.error('Error sending transcript:', error);
+    });
+  }
