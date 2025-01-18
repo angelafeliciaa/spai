@@ -1,5 +1,12 @@
+import os
+from dotenv import load_dotenv
 import transformers
 import torch
+from huggingface_hub import login
+
+load_dotenv()
+
+login(token=HUGGINGFACE_TOKEN)
 
 model_id = "meta-llama/Llama-3.1-8B"
 
