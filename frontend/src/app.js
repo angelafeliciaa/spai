@@ -41,9 +41,7 @@ export function initializeSpeechRecognition(onResult, onError) {
   return recognition;
 }
 
-
-// Utility function to upload to Supabase
-export async function uploadToSupabase(blob, fileName) {
+export async function uploadToSupabase(blob, fileName, userName = null) {  // Make userName optional with default value
   if (!supabase) {
     console.error('Supabase client not initialized.');
     return null;
@@ -51,16 +49,52 @@ export async function uploadToSupabase(blob, fileName) {
   
   console.log('Uploading to Supabase:', fileName);
 
-  const { data, error } = await supabase.storage
-    .from('media-files') // Replace with your bucket name
+  // First upload the image to storage
+  const { data: imageData, error: imageError } = await supabase.storage
+    .from('media-files')
     .upload(fileName, blob, {
       contentType: 'image/png',
-      cacheControl: '3600', // optional
+      cacheControl: '3600',
     });
 
-  if (error) {
-    console.error('Error uploading to Supabase:', error);
-  } else {
-    console.log('Successfully uploaded to Supabase:', data);
+  if (imageError) {
+    console.error('Error uploading to Supabase:', imageError);
+    return null;
   }
+
+  // Get the public URL for the uploaded image
+  const { data: urlData } = supabase.storage
+    .from('media-files')
+    .getPublicUrl(fileName);
+
+  // Only create user interaction if userName is provided
+  if (userName) {
+    try {
+      const { data: userData, error: userError } = await supabase
+        .from('user_interactions')
+        .insert([
+          {
+            user_id: userName.toLowerCase(),
+            name: userName,
+            image_url: urlData.publicUrl,
+            conversation_summary: '' // This will be updated later with the summary
+          }
+        ])
+        .select()
+        .single();
+
+      if (userError) {
+        console.error('Error creating user interaction:', userError);
+        return null;
+      }
+
+      console.log('Successfully uploaded to Supabase:', userData);
+      return userData;
+    } catch (error) {
+      console.error('Error in user interaction creation:', error);
+      return null;
+    }
+  }
+
+  return urlData;  // Return URL data even if user interaction creation fails
 }

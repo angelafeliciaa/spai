@@ -36,25 +36,26 @@ class ChatResponse(BaseModel):
 def clear_user_states():
     user_states = {}
 
-def store_summary(user_id, summary):
-    result = supabase.table("summaries").select("*").eq("user_id", user_id).execute()
-    if result.data:
-        response = supabase.table("summaries").update({"summary": summary}).eq("user_id", user_id).execute()
+def store_summary(user_id: str, summary: str):
+    try:
+        # Update the existing user interaction with the conversation summary
+        response = supabase.table("user_interactions") \
+            .update({"conversation_summary": summary}) \
+            .eq("user_id", user_id.lower()) \
+            .execute()
+        
         if response.error:
             print(f"Error updating summary for user_id={user_id}: {response.error}")
         else:
-            print(f"Summary updated for user_id={user_id}.")
-    else:
-        response = supabase.table("summaries").insert({"user_id": user_id, "summary": summary}).execute()
-        if response.error:
-            print(f"Error inserting summary for user id={user_id}: {response.error}")
-        else:
-            print(f"Summary inserted for userid={user_id}.")
-
+            print(f"Summary updated for user_id={user_id}")
+            
+    except Exception as e:
+        print(f"Error in store_summary: {str(e)}")
+        return None
 
 @app.post("/chat", response_model=ChatResponse)
 def chat_endpoint(req: ChatRequest):
-    user_id = req.user_id
+    user_id = req.user_id.lower()
     user_text = req.text.strip() if req.text else ""
 
     state = user_states.get(user_id)
@@ -64,7 +65,7 @@ def chat_endpoint(req: ChatRequest):
             "history": []
         }
         user_states[user_id] = state
-    print("time stamp:", state["last_timestamp"])
+
     current_time = time.time()
     elapsed = current_time - state["last_timestamp"]
     state["last_timestamp"] = current_time
@@ -76,7 +77,7 @@ def chat_endpoint(req: ChatRequest):
             for idx, question in enumerate(state["history"], start=1):
                 summary_prompt += f"{idx}. {question}\n"
             summary_answer = ask_question(summary_prompt)
-            print(f"[DEBUG] Summary for user {user_id}: {summary_answer}")
+            store_summary(user_id, summary_answer)
             clear_user_states()
         return ChatResponse(response='')
     else:

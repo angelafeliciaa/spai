@@ -40,7 +40,7 @@ async function startCapture() {
     }
     if (!isNameCaptured) {
       generateAndPlaySpeech("Hi, what's your name?");
-      await delay(3000);
+      await delay(2000);
     }
 
     recognition = initializeSpeechRecognition(
@@ -51,7 +51,7 @@ async function startCapture() {
           console.log('User name:', user_name)
           isNameCaptured = true;
           await takeSnapshot();
-          generateAndPlaySpeech(`How can I help you?`);
+          generateAndPlaySpeech(`What project are you working on?`);
         } else {
           const payload = {
             user_id: user_name,
@@ -105,7 +105,6 @@ function stopCapture() {
   console.log('Media capture stopped.');
 }
 
-// Function to take a snapshot
 async function takeSnapshot() {
   if (!localStream) return;
 
@@ -121,8 +120,15 @@ async function takeSnapshot() {
   if (blob) {
     const fileName = `snapshot-${Date.now()}.png`;
     console.log('Taking snapshot...');
-    isNameCaptured = true
-    await uploadToSupabase(blob, fileName);
+    isNameCaptured = true;
+    
+    // Only pass user_name if it exists
+    if (user_name) {
+      await uploadToSupabase(blob, fileName, user_name);
+    } else {
+      console.log('User name not captured yet, uploading image only');
+      await uploadToSupabase(blob, fileName);
+    }
   }
 }
 
@@ -141,7 +147,7 @@ async function generateAndPlaySpeech(inputText) {
 
     const mp3 = await openai.audio.speech.create({
       model: "tts-1",
-      voice: "alloy",
+      voice: "nova",
       input: inputText,
     });
 
@@ -200,7 +206,7 @@ function sendTranscript(transcript) {
   const url = import.meta.env.VITE_BACKEND_URL
   console.log(url)
   console.log('Sending request:', transcript)
-  fetch(`${url}/chat`, {
+  fetch(`${url}chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(transcript)
