@@ -53,8 +53,10 @@ def chat_endpoint(req: ChatRequest):
 
     current_time = time.time()
     elapsed = current_time - state["last_timestamp"]
+    state["last_timestamp"] = current_time
+    state["history"].append(user_text)
 
-    if elapsed > 5:
+    if elapsed > 30:
         if state["history"]:
             summary_prompt = "Summarize the user's questions so far:\n"
             for idx, question in enumerate(state["history"], start=1):
@@ -62,9 +64,8 @@ def chat_endpoint(req: ChatRequest):
             summary_answer = ask_question(summary_prompt)
             print(f"[DEBUG] Summary for user {user_id}: {summary_answer}")
             clear_user_states()
+        return ChatResponse(response='')
     else:
-        state["last_timestamp"] = current_time
-        state["history"].append(user_text)
         llm_response = ask_question(user_text)
         return ChatResponse(response=llm_response)
 
