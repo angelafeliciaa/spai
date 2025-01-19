@@ -10,6 +10,9 @@ const statusDiv = document.getElementById('status'); // Optional: To display sta
 
 let localStream = null;
 let recognition = null;
+let user_name = null;
+let isNameCaptured = false;
+let isPictureCaptured = false;
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -27,12 +30,27 @@ async function startCapture() {
     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
     videoElement.srcObject = stream;
     localStream = stream;
+    if (!isNameCaptured) {
+      generateAndPlaySpeech("Hi, what's your name?");
+    }
 
     recognition = initializeSpeechRecognition(
-      (transcript) => {
+      async (transcript) => {
         console.log('Recognized transcript:', transcript);
-        transcript = {"user_id": "123", "text": transcript, "history": "aaa"}
-        sendTranscript(transcript); // Send the recognized text to the backend
+        if (!isNameCaptured) {
+          user_name = transcript
+          console.log('User name:', user_name)
+          isNameCaptured = true;
+          await takeSnapshot();
+          generateAndPlaySpeech(`How can I help you?`);
+        } else {
+          const payload = {
+            user_id: user_name, // Use the captured user name
+            text: transcript,   // User's current message
+            history: "aaa",     // Optional: Replace with actual chat history
+          };
+          sendTranscript(payload);
+        }
       },
       (error) => console.error('Speech recognition error:', error)
     );
@@ -65,6 +83,10 @@ function stopCapture() {
     console.log('Speech recognition stopped.');
   }
 
+  user_name = null;
+  isPictureCaptured = false;
+  isNameCaptured = false;
+
   videoElement.srcObject = null;
 
   startButton.disabled = false;
@@ -90,6 +112,7 @@ async function takeSnapshot() {
   if (blob) {
     const fileName = `snapshot-${Date.now()}.png`;
     console.log('Taking snapshot...');
+    isNameCaptured = true
     await uploadToSupabase(blob, fileName);
   }
 }
@@ -126,7 +149,7 @@ async function generateAndPlaySpeech(inputText) {
     audio.addEventListener('ended', () => {
       console.log('Audio finished playing');
       // Resume recognition after TTS finishes
-      if (localStream) { // Only restart if we're still in a capture session
+      if (localStream && isNameCaptured) { // Only restart if we're still in a capture session
         recognition = initializeSpeechRecognition(
           (transcript) => {
             console.log('Recognized transcript:', transcript);
