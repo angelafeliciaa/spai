@@ -1,14 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Robot Camera & Microphone Stream</title>
-  <link rel="stylesheet" href="styles.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supabase + Camera Snapshot</title>
 </head>
 <body>
-  <h1>Robot Camera & Microphone Stream</h1>
-  
+  <h1>Robot Camera & Snapshot</h1>
   <div class="controls">
     <label>
       <input type="checkbox" id="enableCamera" checked />
@@ -19,12 +17,13 @@
       Enable Microphone
     </label>
   </div>
-  
+
   <button id="startCapture">Start Capture</button>
   <button id="stopCapture" disabled>Stop Capture</button>
-  
-  <video id="preview" autoplay muted></video>
+  <button id="takeSnapshot" disabled>Take Snapshot</button>
 
-  <script src="app.js"></script>
+  <video id="preview" autoplay muted></video>
+  
+  <script type="module" src="/src/main.js"></script>
 </body>
 </html>
