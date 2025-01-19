@@ -116,7 +116,7 @@ function onTranscript(transcript) {
 // Function to send transcript to the backend
 function sendTranscript(transcript) {
   console.log('Sending transcript to backend:', transcript);
-  fetch('http://127.0.0.1:8000/chat', {
+  fetch('https://081a-206-12-14-199.ngrok-free.app/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
