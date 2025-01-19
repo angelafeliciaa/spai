@@ -1,0 +1,90 @@
+import os
+from typing import Optional
+
+from fastapi import FastAPI
+from pydantic import BaseModel
+from llm.llama import text_gen
+
+from supabase import create_client, Client
+
+load_dotenv()
+
+HUGGINGFACE_TOKEN = os.getenv("HUGGINGFACE_TOKEN")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+login(token=HUGGINGFACE_TOKEN)
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+user_states = {}
+
+class ChatRequest(BaseModel):
+    user_id: str
+    text: Optional[str] = None
+
+class ChatResponse(BaseModel):
+    response: str
+
+app = FastAPI()
+
+@app.post("/chat", response_model=ChatResponse)
+def chat_endpoint(req: ChatRequest):
+    """
+    A single endpoint that:
+    1) Asks for the team name if we don’t have it yet.
+    2) Checks Supabase for that team. If not found, creates a new entry.
+    3) Asks “How can I help you?” after storing the team name.
+    4) Passes user’s question to the LLM and returns the response.
+    """
+
+    user_id = req.user_id
+    user_text = req.text.strip() if req.text else ""
+
+    # Retrieve user state or create a blank state
+    # step: which point in the flow we are at
+    # team_name: store the team name if known
+    state = user_states.get(user_id, {"step": 0, "team_name": None})
+
+    # ----- Step 0: Ask for team name -----
+    if state["step"] == 0:
+        # We haven't asked for the team name yet
+        user_states[user_id]["step"] = 1  # Next time we'll handle the response
+        return ChatResponse(response="What's your team name?")
+
+    # ----- Step 1: Store the team name, check Supabase, then ask how to help -----
+    elif state["step"] == 1:
+        team_name = user_text
+        user_states[user_id]["team_name"] = team_name
+        user_states[user_id]["step"] = 2  # Next step: handle general questions
+
+        # 1. Check Supabase for this team
+        result = supabase.table("teams").select("*").eq("name", team_name).execute()
+        if not result.data:
+            # 2. If not found, create a new record
+            supabase.table("teams").insert({"name": team_name}).execute()
+
+        # 3. Reply that we stored the name, and ask how to help
+        return ChatResponse(
+            response=f"Team name '{team_name}' noted. How can I help you?"
+        )
+
+    # ----- Step 2+: We have the team name, pass input to LLM -----
+    else:
+        # The user is now asking a general question
+        if not user_text:
+            # If user sends empty text, just ask them to clarify
+            return ChatResponse(response="How can I help you today?")
+
+        # Query the LLM with the user’s text
+        llm_output = text_generator(
+            user_text,
+            max_new_tokens=100,  # Limit tokens for faster response
+            do_sample=False      # Or True if you want sampling
+        )
+
+        # Return the generated text
+        answer = text_gen(user_text)
+        return ChatResponse(response=answer)
+
+if __name__ == '__main__':
+    print(text_gen("hello, what's your name"))
