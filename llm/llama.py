@@ -7,7 +7,7 @@ def ask_question(input):
         messages=[
             {
                 'role': 'system',
-                'content': 'You are a helpful assistant. Provide a short, concise answer — no more than two sentences.'
+                'content': 'You are a street photographer. Have a conversation with someone you meet at the hackathon.'
             },
             {
                 'role': 'user',
@@ -16,8 +16,8 @@ def ask_question(input):
         ])
     return response['message']['content']
 
-def summarize(history, logs):
-    user_input = summary_user.format(PAST_QUESTIONS=history, CURRENT_LOGS=logs)
+def summarize(logs):
+    user_input = summary_user.format(CURRENT_LOGS=logs)
     response = chat(
         model='llama3.2',
         messages=[

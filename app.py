@@ -28,7 +28,6 @@ user_states = {}
 class ChatRequest(BaseModel):
     user_id: str
     text: str
-    history: str
 
 class ChatResponse(BaseModel):
     response: str
@@ -57,7 +56,6 @@ def store_summary(user_id: str, summary: str):
 def chat_endpoint(req: ChatRequest):
     user_id = req.user_id.lower()
     user_text = req.text.strip() if req.text else ""
-    user_history = req.history.strip() if req.history else ""
 
     state = user_states.get(user_id)
     if not state:
@@ -77,11 +75,11 @@ def chat_endpoint(req: ChatRequest):
             summary_prompt = ""
             for idx, question in enumerate(state["history"], start=1):
                 summary_prompt += f"{idx}. {question}\n"
-            summary_answer = summarize(user_history, summary_prompt)
+            summary_answer = summarize(summary_prompt)
 
             store_summary(user_id, summary_answer)
             clear_user_states()
-        return ChatResponse(response='')
+        return ChatResponse(response='a')
     else:
         llm_response = ask_question(user_text)
         return ChatResponse(response=llm_response)

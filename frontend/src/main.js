@@ -40,7 +40,7 @@ async function startCapture() {
     }
     if (!isNameCaptured) {
       generateAndPlaySpeech("Hi, what's your name?");
-      await delay(2000);
+      await delay(2500);
     }
 
     recognition = initializeSpeechRecognition(
@@ -142,6 +142,13 @@ async function generateAndPlaySpeech(inputText) {
       console.log('Speech recognition paused for TTS');
     }
     isTextToSpeechPlaying = true;
+
+    if (inputText == 'a') {
+      inputText = "Thank you for using spai! We've stored your data. All the best for the results!"
+      user_name = null;
+      isPictureCaptured = false;
+      isNameCaptured = false;
+    }
 
     console.log("Generating speech for:", inputText);
 

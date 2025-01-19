@@ -41,7 +41,7 @@ export function initializeSpeechRecognition(onResult, onError) {
   return recognition;
 }
 
-export async function uploadToSupabase(blob, fileName, userName = null) {  // Make userName optional with default value
+export async function uploadToSupabase(blob, fileName, userName = null) {
   if (!supabase) {
     console.error('Supabase client not initialized.');
     return null;
