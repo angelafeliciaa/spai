@@ -1,29 +1,30 @@
 import os
 from typing import Optional
 
+from ollama import chat
+from ollama import ChatResponse
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from llm.llama import text_gen
+from dotenv import load_dotenv
 
 from supabase import create_client, Client
 
 load_dotenv()
-
-HUGGINGFACE_TOKEN = os.getenv("HUGGINGFACE_TOKEN")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-login(token=HUGGINGFACE_TOKEN)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:8001"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["http://localhost:8001"],
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 
 user_states = {}
 

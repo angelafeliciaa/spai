@@ -1,19 +1,13 @@
-import os
-from dotenv import load_dotenv
-import transformers
-import torch
-from huggingface_hub import login
+from ollama import chat
+from ollama import ChatResponse
 
-model_id = "meta-llama/Llama-3.1-8B"
-
-text_generator = transformers.pipeline(
-    "text-generation",
-    model=model_id,
-    model_kwargs={"torch_dtype": torch.float16},
-    device_map="auto"
-)
 
 def text_gen(input):
-    response = text_generator(input)
-    return response[0]["generated_text"]
+    response: ChatResponse = chat(model='llama3.2', messages=[
+    {
+        'role': 'user',
+        'content': input,
+    },
+    ])
+    return response['message']['content']
 
