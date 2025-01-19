@@ -165,30 +165,3 @@ function sendTranscript(transcript) {
     })
     .catch((error) => console.error('Error sending transcript to backend:', error));
 }
-
-// Poll for server responses
-// function getServerResponse() {
-//   fetch('https://a3b8-206-12-14-98.ngrok-free.app/response', {
-//     method: 'GET',
-//     headers: { 'Content-Type': 'application/json' },
-//   })
-//     .then((response) => response.json())
-//     .then((data) => {
-//       console.log('Received server response:', data);
-//       if (data?.message) {
-//         speakText(data.message);
-//       }
-//     })
-//     .catch((error) => console.error('Error fetching server response:', error));
-// }
-
-// Polling management
-function startPolling() {
-  pollingInterval = setInterval(getServerResponse, 5000);
-}
-function stopPolling() {
-  if (pollingInterval) {
-    clearInterval(pollingInterval);
-    pollingInterval = null;
-  }
-}
