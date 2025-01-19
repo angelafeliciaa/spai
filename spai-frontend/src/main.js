@@ -6,25 +6,20 @@ const videoElement = document.getElementById('preview');
 const startButton = document.getElementById('startCapture');
 const stopButton = document.getElementById('stopCapture');
 const snapshotButton = document.getElementById('takeSnapshot');
-const testTTSButton = document.getElementById('testTTS'); // Ensure this button exists in your HTML
 const statusDiv = document.getElementById('status'); // Optional: To display status messages
 
 let localStream = null;
 let recognition = null;
-let pollingInterval = null; // Holds the interval ID for pollingx
 
 // Initialize OpenAI client
-// const openai = new OpenAI({
-//   apiKey: import.meta.env.VITE_OPENAI_API_KEY, dangerouslyAllowBrowser: true
-// });
+const openai = new OpenAI({
+  apiKey: import.meta.env.VITE_OPENAI_API_KEY, dangerouslyAllowBrowser: true,
+});
 
 // Event Listeners
 startButton?.addEventListener('click', startCapture);
 stopButton?.addEventListener('click', stopCapture);
 snapshotButton?.addEventListener('click', takeSnapshot);
-testTTSButton?.addEventListener('click', () => {
-  generateAndPlaySpeech("Hello, this is a test of OpenAI text-to-speech.");
-});
 
 // Function to start media capture
 async function startCapture() {
@@ -52,7 +47,6 @@ async function startCapture() {
     snapshotButton.disabled = false;
 
     console.log('Media capture started.');
-    // startPolling(); // Start polling for server responses
   } catch (error) {
     console.error('Error starting camera:', error);
   }
@@ -77,7 +71,6 @@ function stopCapture() {
   stopButton.disabled = true;
   snapshotButton.disabled = true;
 
-  // stopPolling(); // Stop polling
   console.log('Media capture stopped.');
 }
 
@@ -122,34 +115,12 @@ async function generateAndPlaySpeech(inputText) {
     const audio = new Audio(audioURL);
     audio.play();
 
-    // Optional: Provide a download link
-    const downloadLink = document.createElement("a");
-    downloadLink.href = audioURL;
-    downloadLink.download = "speech.mp3";
-    downloadLink.textContent = "Download Speech";
-    document.body.appendChild(downloadLink);
-
     console.log("Speech generated and played successfully!");
   } catch (error) {
     console.error("Error generating speech:", error);
   }
 }
 
-
-// Function for browser-native TTS
-// function speakText(text) {
-//   if (!('speechSynthesis' in window)) {
-//     console.warn('Text-to-Speech is not supported in this browser.');
-//     return;
-//   }
-
-//   const utterance = new SpeechSynthesisUtterance(text);
-//   utterance.voice = window.speechSynthesis.getVoices().find((voice) => voice.name === 'Google US English');
-//   utterance.lang = 'en-US';
-//   window.speechSynthesis.speak(utterance);
-// }
-
-// Send transcript to the backend
 function sendTranscript(transcript) {
   fetch("http://localhost:3001/chat", {
     method: "POST",
