@@ -165,7 +165,8 @@ async function generateAndPlaySpeech(inputText) {
 }
 
 function sendTranscript(transcript) {
-  fetch("http://10.43.152.147:3001/chat", {
+  url = process.env.VITE_BACKEND_URL
+  fetch(`${url}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(transcript)
