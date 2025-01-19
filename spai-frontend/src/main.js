@@ -94,9 +94,17 @@ async function takeSnapshot() {
   }
 }
 
-// OpenAI TTS: Generate and Play Speech
+let isTextToSpeechPlaying = false;
+
 async function generateAndPlaySpeech(inputText) {
   try {
+    // Stop recognition while TTS is about to play
+    if (recognition) {
+      recognition.stop();
+      console.log('Speech recognition paused for TTS');
+    }
+    isTextToSpeechPlaying = true;
+    
     console.log("Generating speech for:", inputText);
     
     const mp3 = await openai.audio.speech.create({
@@ -114,29 +122,45 @@ async function generateAndPlaySpeech(inputText) {
     const audioURL = URL.createObjectURL(audioBlob);
     const audio = new Audio(audioURL);
     
-    // Add event listeners to track audio playback
     audio.addEventListener('play', () => console.log('Audio started playing'));
-    audio.addEventListener('ended', () => console.log('Audio finished playing'));
-    audio.addEventListener('error', (e) => console.error('Audio playback error:', e));
+    audio.addEventListener('ended', () => {
+      console.log('Audio finished playing');
+      // Resume recognition after TTS finishes
+      if (localStream) { // Only restart if we're still in a capture session
+        recognition = initializeSpeechRecognition(
+          (transcript) => {
+            console.log('Recognized transcript:', transcript);
+            transcript = {"user_id": "123", "text": transcript, "history": "aaa"}
+            sendTranscript(transcript);
+          },
+          (error) => console.error('Speech recognition error:', error)
+        );
+        recognition.start();
+        console.log('Speech recognition resumed after TTS');
+      }
+      isTextToSpeechPlaying = false;
+      URL.revokeObjectURL(audioURL);
+    });
     
-    // Try to play and await it
+    audio.addEventListener('error', (e) => {
+      console.error('Audio playback error:', e);
+      isTextToSpeechPlaying = false;
+    });
+    
     try {
       await audio.play();
       console.log("Audio playback started!");
     } catch (playError) {
       console.error("Playback error:", playError);
+      isTextToSpeechPlaying = false;
     }
-
-    // Clean up the URL after playback
-    audio.onended = () => {
-      URL.revokeObjectURL(audioURL);
-    };
 
   } catch (error) {
     console.error("Error in generateAndPlaySpeech:", error);
     if (error.response) {
       console.error("OpenAI API Error:", await error.response.text());
     }
+    isTextToSpeechPlaying = false;
   }
 }
 
@@ -149,8 +173,8 @@ function sendTranscript(transcript) {
     .then((response) => response.json())
     .then((data) => {
       console.log('Backend response:', data);
-      if (data?.responseText) {
-        generateAndPlaySpeech(data.responseText); // Use the backend's response for TTS
+      if (data?.response) {
+        generateAndPlaySpeech(data.response); // Use the backend's response for TTS
       }
     })
     .catch((error) => console.error('Error sending transcript to backend:', error));
