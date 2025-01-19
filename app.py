@@ -1,4 +1,5 @@
 import os
+import time
 from typing import Optional
 
 from ollama import chat
@@ -7,7 +8,7 @@ from ollama import ChatResponse
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from llm.llama import text_gen
+from llm.llama import ask_question
 from dotenv import load_dotenv
 
 from supabase import create_client, Client
@@ -29,39 +30,43 @@ user_states = {}
 class ChatRequest(BaseModel):
     user_id: str
     text: str
+    history: str
 
 class ChatResponse(BaseModel):
     response: str
+
+def clear_user_states():
+    user_states = {}
 
 @app.post("/chat", response_model=ChatResponse)
 def chat_endpoint(req: ChatRequest):
     user_id = req.user_id
     user_text = req.text.strip() if req.text else ""
 
-    state = user_states.get(user_id, {"step": 0, "team_name": None})
-    return ChatResponse(response="How can I help you today?")
+    state = user_states.get(user_id)
+    if not state:
+        state = {
+            "last_timestamp": time.time(),
+            "history": []
+        }
+        user_states[user_id] = state
 
-    # # Ask for team name
-    # if state["step"] == 0:
-    #     user_states[user_id]["step"] = 1
-    #     return ChatResponse(response="What's your team name?")
-    # elif state["step"] == 1:
-    #     team_name = user_text
-    #     user_states[user_id]["team_name"] = team_name
-    #     user_states[user_id]["step"] = 2
+    current_time = time.time()
+    elapsed = current_time - state["last_timestamp"]
 
-    #     result = supabase.table("teams").select("*").eq("name", team_name).execute()
-    #     if not result.data:
-    #         supabase.table("teams").insert({"name": team_name}).execute()
-
-    #     # Reply that we stored the name, and ask how to help
-    #     return ChatResponse(response=f"How can I help you?")
-    # else:
-    #     if not user_text:
-    #         return ChatResponse(response="How can I help you today?")
-
-    #     answer = text_gen(user_text)
-    #     return ChatResponse(response=answer)
+    if elapsed > 5:
+        if state["history"]:
+            summary_prompt = "Summarize the user's questions so far:\n"
+            for idx, question in enumerate(state["history"], start=1):
+                summary_prompt += f"{idx}. {question}\n"
+            summary_answer = ask_question(summary_prompt)
+            print(f"[DEBUG] Summary for user {user_id}: {summary_answer}")
+            clear_user_states()
+    else:
+        state["last_timestamp"] = current_time
+        state["history"].append(user_text)
+        llm_response = ask_question(user_text)
+        return ChatResponse(response=llm_response)
 
 if __name__ == '__main__':
-    print(text_gen("hello, what's your name"))
+    print(ask_question("hello, what's your name"))

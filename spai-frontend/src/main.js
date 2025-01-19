@@ -31,7 +31,7 @@ async function startCapture() {
     recognition = initializeSpeechRecognition(
       (transcript) => {
         console.log('Recognized transcript:', transcript);
-        transcript = {"user_id": "123", "text": transcript}
+        transcript = {"user_id": "123", "text": transcript, "history": "aaa"}
         sendTranscript(transcript); // Send the recognized text to the backend
       },
       (error) => console.error('Speech recognition error:', error)
@@ -122,7 +122,7 @@ async function generateAndPlaySpeech(inputText) {
 }
 
 function sendTranscript(transcript) {
-  fetch("http://localhost:3001/chat", {
+  fetch("http://10.43.152.147:3001/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(transcript)
