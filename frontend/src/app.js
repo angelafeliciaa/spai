@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import {startCapture} from './main'
 
 // Supabase client configuration
 export const supabase = (() => {
@@ -34,7 +35,15 @@ export function initializeSpeechRecognition(onResult, onError) {
     if (onResult) onResult(transcript);
   };
 
-  recognition.onerror = (event) => {
+  recognition.onerror = async (event) => {
+    console.error('Speech recognition error:', event.error);
+
+    if (event.error === 'no-speech') {
+      recognition.stop();
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      startCapture();
+    }
+
     if (onError) onError(event.error);
   };
 

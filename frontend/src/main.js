@@ -1,4 +1,4 @@
-import { supabase, initializeSpeechRecognition, uploadToSupabase } from './app';
+import { supabase, initializeSpeechRecognition, uploadToSupabase} from './app';
 import OpenAI from "openai";
 
 // DOM Elements
@@ -29,7 +29,7 @@ function delay(ms) {
 }
 
 // Function to start media capture
-async function startCapture() {
+export async function startCapture() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
     videoElement.srcObject = stream;
@@ -143,13 +143,6 @@ async function generateAndPlaySpeech(inputText) {
     }
     isTextToSpeechPlaying = true;
 
-    if (inputText == 'a') {
-      inputText = "Thank you for using spai! We've stored your data. All the best for the results!"
-      user_name = null;
-      isPictureCaptured = false;
-      isNameCaptured = false;
-    }
-
     console.log("Generating speech for:", inputText);
 
     const mp3 = await openai.audio.speech.create({
@@ -170,6 +163,7 @@ async function generateAndPlaySpeech(inputText) {
     audio.addEventListener('play', () => console.log('Audio started playing'));
     audio.addEventListener('ended', () => {
       console.log('Audio finished playing');
+
       // Resume recognition after TTS finishes
       if (localStream && isNameCaptured) { // Only restart if we're still in a capture session
         recognition = initializeSpeechRecognition(
@@ -222,8 +216,53 @@ function sendTranscript(transcript) {
     .then(async (data) => {
       console.log('Backend response:', data);
       if (data?.response) {
+        if (data.response == 'a') {
+          // inputText = "Thank you for using spai! We've stored your data. All the best for the results!"
+          user_name = null;
+          isPictureCaptured = false;
+          isNameCaptured = false;
+          // generateAndPlaySpeech(inputText);
+          startCapture()
+        }
         generateAndPlaySpeech(data.response);
       }
     })
     .catch((error) => console.error('Error sending transcript to backend:', error));
+}
+
+function initializeWakeWordDetection() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  
+  if (!SpeechRecognition) {
+    console.warn('Speech recognition not supported in this browser.');
+    return null;
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = false;
+  recognition.lang = 'en-US';
+
+  recognition.onresult = async (event) => {
+    const lastResultIndex = event.results.length - 1;
+    const transcript = event.results[lastResultIndex][0].transcript.trim().toLowerCase();
+    if (transcript.includes('hey') || transcript.includes('hay')) {
+      console.log('Wake word detected!');
+      recognition.stop();  // Stop listening for wake word
+      await startCapture();  // Start the main capture process
+    }
+  };
+
+  recognition.onend = () => {
+    // Restart wake word detection if we're not in capture mode
+    if (!localStream) {
+      recognition.start();
+    }
+  };
+
+  recognition.onerror = (event) => {
+    console.error('Wake word detection error:', event.error);
+  };
+
+  return recognition;
 }

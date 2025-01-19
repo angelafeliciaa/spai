@@ -7,7 +7,7 @@ def ask_question(input):
         messages=[
             {
                 'role': 'system',
-                'content': 'You are a street photographer. Have a conversation with someone you meet at the hackathon.'
+                'content': 'You are a street photographer. Have a conversation with someone you meet at the hackathon. Only generate talking script, in one or two sentences.'
             },
             {
                 'role': 'user',
