@@ -165,7 +165,8 @@ async function generateAndPlaySpeech(inputText) {
 }
 
 function sendTranscript(transcript) {
-  const url = process.env.VITE_BACKEND_URL
+  const url = import.meta.env.VITE_BACKEND_URL
+  console.log(url)
   fetch(`${url}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
