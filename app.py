@@ -49,9 +49,9 @@ def store_summary(user_id, summary):
     else:
         response = supabase.table("summaries").insert({"user_id": user_id, "summary": summary}).execute()
         if response.error:
-            print(f"Error inserting summary for user_id={user_id}: {response.error}")
+            print(f"Error inserting summary for user id={user_id}: {response.error}")
         else:
-            print(f"Summary inserted for user_id={user_id}.")
+            print(f"Summary inserted for userid={user_id}.")
 
 
 @app.post("/chat", response_model=ChatResponse)
