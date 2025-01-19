@@ -127,15 +127,15 @@ async function generateAndPlaySpeech(inputText) {
       console.log('Speech recognition paused for TTS');
     }
     isTextToSpeechPlaying = true;
-    
+
     console.log("Generating speech for:", inputText);
-    
+
     const mp3 = await openai.audio.speech.create({
       model: "tts-1",
       voice: "alloy",
       input: inputText,
     });
-    
+
     console.log("Speech generated successfully");
 
     const audioBlob = new Blob([new Uint8Array(await mp3.arrayBuffer())], {
@@ -144,7 +144,7 @@ async function generateAndPlaySpeech(inputText) {
 
     const audioURL = URL.createObjectURL(audioBlob);
     const audio = new Audio(audioURL);
-    
+
     audio.addEventListener('play', () => console.log('Audio started playing'));
     audio.addEventListener('ended', () => {
       console.log('Audio finished playing');
@@ -153,7 +153,7 @@ async function generateAndPlaySpeech(inputText) {
         recognition = initializeSpeechRecognition(
           (transcript) => {
             console.log('Recognized transcript:', transcript);
-            transcript = {"user_id": "123", "text": transcript, "history": "aaa"}
+            transcript = { "user_id": "123", "text": transcript, "history": "aaa" }
             sendTranscript(transcript);
           },
           (error) => console.error('Speech recognition error:', error)
@@ -164,12 +164,12 @@ async function generateAndPlaySpeech(inputText) {
       isTextToSpeechPlaying = false;
       URL.revokeObjectURL(audioURL);
     });
-    
+
     audio.addEventListener('error', (e) => {
       console.error('Audio playback error:', e);
       isTextToSpeechPlaying = false;
     });
-    
+
     try {
       await audio.play();
       console.log("Audio playback started!");
