@@ -11,12 +11,12 @@ const statusDiv = document.getElementById('status'); // Optional: To display sta
 
 let localStream = null;
 let recognition = null;
-let pollingInterval = null; // Holds the interval ID for polling
+let pollingInterval = null; // Holds the interval ID for pollingx
 
 // Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY, dangerouslyAllowBrowser: true
-});
+// const openai = new OpenAI({
+//   apiKey: import.meta.env.VITE_OPENAI_API_KEY, dangerouslyAllowBrowser: true
+// });
 
 // Event Listeners
 startButton?.addEventListener('click', startCapture);
@@ -36,6 +36,7 @@ async function startCapture() {
     recognition = initializeSpeechRecognition(
       (transcript) => {
         console.log('Recognized transcript:', transcript);
+        transcript = {"user_id": "123", "text": transcript}
         sendTranscript(transcript); // Send the recognized text to the backend
       },
       (error) => console.error('Speech recognition error:', error)
@@ -150,10 +151,10 @@ async function generateAndPlaySpeech(inputText) {
 
 // Send transcript to the backend
 function sendTranscript(transcript) {
-  fetch('https://a3b8-206-12-14-98.ngrok-free.app/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ transcript }),
+  fetch("http://localhost:3001/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(transcript)
   })
     .then((response) => response.json())
     .then((data) => console.log('Backend response:', data))
