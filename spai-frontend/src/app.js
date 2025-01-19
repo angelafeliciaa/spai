@@ -43,6 +43,11 @@ export function initializeSpeechRecognition(onResult, onError) {
 
 // Utility function to upload to Supabase
 export async function uploadToSupabase(blob, fileName) {
+  if (!supabase) {
+    console.error('Supabase client not initialized.');
+    return null;
+  }
+  
   console.log('Uploading to Supabase:', fileName);
 
   const { data, error } = await supabase.storage

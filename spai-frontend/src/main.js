@@ -88,6 +88,31 @@ async function takeSnapshot() {
   }
 }
 
+function onTranscript(transcript) {
+  console.log("Transcript:", transcript);
+
+  // Step 0: We want the user's name
+  if (currentStep === 0) {
+    userName = transcript;
+    currentStep = 1;
+    statusDiv.textContent = `Hello ${userName}, please pose for a picture (press 'Take Snapshot').`;
+  }
+  // Step 2: user says the question
+  else if (currentStep === 2) {
+    userQuestion = transcript;
+    statusDiv.textContent = `Question received: "${userQuestion}". Sending to backend...`;
+
+    // Now we send everything to the backend
+    sendToBackend(userName, pictureURL, userQuestion);
+    // (If you want more conversation after this, you could set currentStep=3, etc.)
+  }
+  // If they're not in the correct step, we just ignore or override
+  else {
+    console.log("Ignoring transcript, not in the correct step:", currentStep);
+  }
+}
+
+
 // Function to send transcript to the backend
 function sendTranscript(transcript) {
   console.log('Sending transcript to backend:', transcript);
