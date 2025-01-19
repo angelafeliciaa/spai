@@ -24,14 +24,23 @@ startButton?.addEventListener('click', startCapture);
 stopButton?.addEventListener('click', stopCapture);
 snapshotButton?.addEventListener('click', takeSnapshot);
 
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // Function to start media capture
 async function startCapture() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
     videoElement.srcObject = stream;
     localStream = stream;
+    if (recognition) {
+      recognition.stop();
+      console.log('Speech recognition stopped before playing TTS');
+    }
     if (!isNameCaptured) {
       generateAndPlaySpeech("Hi, what's your name?");
+      await delay(3000);
     }
 
     recognition = initializeSpeechRecognition(
@@ -45,9 +54,9 @@ async function startCapture() {
           generateAndPlaySpeech(`How can I help you?`);
         } else {
           const payload = {
-            user_id: user_name, // Use the captured user name
-            text: transcript,   // User's current message
-            history: "aaa",     // Optional: Replace with actual chat history
+            user_id: user_name,
+            text: transcript,
+            history: "aaa",
           };
           sendTranscript(payload);
         }
@@ -153,7 +162,7 @@ async function generateAndPlaySpeech(inputText) {
         recognition = initializeSpeechRecognition(
           (transcript) => {
             console.log('Recognized transcript:', transcript);
-            transcript = { "user_id": "123", "text": transcript, "history": "aaa" }
+            transcript = { "user_id": user_name, "text": transcript, "history": "aaa" }
             sendTranscript(transcript);
           },
           (error) => console.error('Speech recognition error:', error)
@@ -190,16 +199,17 @@ async function generateAndPlaySpeech(inputText) {
 function sendTranscript(transcript) {
   const url = import.meta.env.VITE_BACKEND_URL
   console.log(url)
+  console.log('Sending request:', transcript)
   fetch(`${url}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(transcript)
   })
     .then((response) => response.json())
-    .then((data) => {
+    .then(async (data) => {
       console.log('Backend response:', data);
       if (data?.response) {
-        generateAndPlaySpeech(data.response); // Use the backend's response for TTS
+        generateAndPlaySpeech(data.response);
       }
     })
     .catch((error) => console.error('Error sending transcript to backend:', error));
