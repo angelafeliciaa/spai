@@ -150,13 +150,18 @@ async function generateAndPlaySpeech(inputText) {
 
 // Send transcript to the backend
 function sendTranscript(transcript) {
-  fetch('https://a3b8-206-12-14-98.ngrok-free.app/chat', {
+  fetch('http://localhost:8000/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ transcript }),
   })
     .then((response) => response.json())
-    .then((data) => console.log('Backend response:', data))
+    .then((data) => {
+      console.log('Backend response:', data);
+      if (data?.responseText) {
+        generateAndPlaySpeech(data.responseText); // Use the backend's response for TTS
+      }
+    })
     .catch((error) => console.error('Error sending transcript to backend:', error));
 }
 
