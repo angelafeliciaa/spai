@@ -40,49 +40,33 @@ def chat_endpoint(req: ChatRequest):
     user_id = req.user_id
     user_text = req.text.strip() if req.text else ""
 
-    # Retrieve user state or create a blank state
-    # step: which point in the flow we are at
-    # team_name: store the team name if known
     state = user_states.get(user_id, {"step": 0, "team_name": None})
 
-    # ----- Step 0: Ask for team name -----
+    # Ask for team name
     if state["step"] == 0:
-        # We haven't asked for the team name yet
-        user_states[user_id]["step"] = 1  # Next time we'll handle the response
+        user_states[user_id]["step"] = 1
         return ChatResponse(response="What's your team name?")
 
-    # ----- Step 1: Store the team name, check Supabase, then ask how to help -----
+    # Store the team name, check Supabase, then ask how to help -----
     elif state["step"] == 1:
         team_name = user_text
         user_states[user_id]["team_name"] = team_name
-        user_states[user_id]["step"] = 2  # Next step: handle general questions
+        user_states[user_id]["step"] = 2
 
-        # 1. Check Supabase for this team
         result = supabase.table("teams").select("*").eq("name", team_name).execute()
         if not result.data:
-            # 2. If not found, create a new record
             supabase.table("teams").insert({"name": team_name}).execute()
 
-        # 3. Reply that we stored the name, and ask how to help
+        # Reply that we stored the name, and ask how to help
         return ChatResponse(
             response=f"Team name '{team_name}' noted. How can I help you?"
         )
 
-    # ----- Step 2+: We have the team name, pass input to LLM -----
+    #
     else:
-        # The user is now asking a general question
         if not user_text:
-            # If user sends empty text, just ask them to clarify
             return ChatResponse(response="How can I help you today?")
 
-        # Query the LLM with the user’s text
-        llm_output = text_generator(
-            user_text,
-            max_new_tokens=100,  # Limit tokens for faster response
-            do_sample=False      # Or True if you want sampling
-        )
-
-        # Return the generated text
         answer = text_gen(user_text)
         return ChatResponse(response=answer)
 
