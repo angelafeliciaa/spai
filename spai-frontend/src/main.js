@@ -1,26 +1,38 @@
 import { supabase, initializeSpeechRecognition, uploadToSupabase } from './app';
+import OpenAI from "openai";
 
+// DOM Elements
 const videoElement = document.getElementById('preview');
 const startButton = document.getElementById('startCapture');
 const stopButton = document.getElementById('stopCapture');
 const snapshotButton = document.getElementById('takeSnapshot');
+const testTTSButton = document.getElementById('testTTS'); // Ensure this button exists in your HTML
+const statusDiv = document.getElementById('status'); // Optional: To display status messages
 
 let localStream = null;
 let recognition = null;
+let pollingInterval = null; // Holds the interval ID for polling
 
-// Event listeners
-startButton.addEventListener('click', startCapture);
-stopButton.addEventListener('click', stopCapture);
-snapshotButton.addEventListener('click', takeSnapshot);
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: import.meta.env.VITE_OPENAI_API_KEY, dangerouslyAllowBrowser: true
+});
 
+// Event Listeners
+startButton?.addEventListener('click', startCapture);
+stopButton?.addEventListener('click', stopCapture);
+snapshotButton?.addEventListener('click', takeSnapshot);
+testTTSButton?.addEventListener('click', () => {
+  generateAndPlaySpeech("Hello, this is a test of OpenAI text-to-speech.");
+});
+
+// Function to start media capture
 async function startCapture() {
   try {
-    // Initialize media capture
     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
     videoElement.srcObject = stream;
     localStream = stream;
 
-    // Initialize speech recognition
     recognition = initializeSpeechRecognition(
       (transcript) => {
         console.log('Recognized transcript:', transcript);
@@ -30,12 +42,8 @@ async function startCapture() {
     );
 
     if (recognition) {
-      try {
-        recognition.start();
-        console.log('Speech recognition started.');
-      } catch (error) {
-        console.error('Speech recognition failed to start:', error);
-      }
+      recognition.start();
+      console.log('Speech recognition started.');
     }
 
     startButton.disabled = true;
@@ -43,11 +51,13 @@ async function startCapture() {
     snapshotButton.disabled = false;
 
     console.log('Media capture started.');
+    // startPolling(); // Start polling for server responses
   } catch (error) {
     console.error('Error starting camera:', error);
   }
 }
 
+// Function to stop media capture
 function stopCapture() {
   if (localStream) {
     localStream.getTracks().forEach((track) => track.stop());
@@ -66,9 +76,11 @@ function stopCapture() {
   stopButton.disabled = true;
   snapshotButton.disabled = true;
 
+  // stopPolling(); // Stop polling
   console.log('Media capture stopped.');
 }
 
+// Function to take a snapshot
 async function takeSnapshot() {
   if (!localStream) return;
 
@@ -88,46 +100,89 @@ async function takeSnapshot() {
   }
 }
 
-function onTranscript(transcript) {
-  console.log("Transcript:", transcript);
+// OpenAI TTS: Generate and Play Speech
+async function generateAndPlaySpeech(inputText) {
+  try {
+    const mp3 = await openai.audio.speech.create({
+      model: "tts-1",
+      voice: "alloy",
+      input: inputText,
+    });
 
-  // Step 0: We want the user's name
-  if (currentStep === 0) {
-    userName = transcript;
-    currentStep = 1;
-    statusDiv.textContent = `Hello ${userName}, please pose for a picture (press 'Take Snapshot').`;
-  }
-  // Step 2: user says the question
-  else if (currentStep === 2) {
-    userQuestion = transcript;
-    statusDiv.textContent = `Question received: "${userQuestion}". Sending to backend...`;
+    // Convert the ArrayBuffer to a Blob
+    const audioBlob = new Blob([new Uint8Array(await mp3.arrayBuffer())], {
+      type: "audio/mpeg",
+    });
 
-    // Now we send everything to the backend
-    sendToBackend(userName, pictureURL, userQuestion);
-    // (If you want more conversation after this, you could set currentStep=3, etc.)
-  }
-  // If they're not in the correct step, we just ignore or override
-  else {
-    console.log("Ignoring transcript, not in the correct step:", currentStep);
+    // Create an Object URL for the audio
+    const audioURL = URL.createObjectURL(audioBlob);
+
+    // Create an audio element and play the speech
+    const audio = new Audio(audioURL);
+    audio.play();
+
+    // Optional: Provide a download link
+    const downloadLink = document.createElement("a");
+    downloadLink.href = audioURL;
+    downloadLink.download = "speech.mp3";
+    downloadLink.textContent = "Download Speech";
+    document.body.appendChild(downloadLink);
+
+    console.log("Speech generated and played successfully!");
+  } catch (error) {
+    console.error("Error generating speech:", error);
   }
 }
 
 
-// Function to send transcript to the backend
+// Function for browser-native TTS
+// function speakText(text) {
+//   if (!('speechSynthesis' in window)) {
+//     console.warn('Text-to-Speech is not supported in this browser.');
+//     return;
+//   }
+
+//   const utterance = new SpeechSynthesisUtterance(text);
+//   utterance.voice = window.speechSynthesis.getVoices().find((voice) => voice.name === 'Google US English');
+//   utterance.lang = 'en-US';
+//   window.speechSynthesis.speak(utterance);
+// }
+
+// Send transcript to the backend
 function sendTranscript(transcript) {
-  console.log('Sending transcript to backend:', transcript);
-  fetch('https://081a-206-12-14-199.ngrok-free.app/chat', {
+  fetch('https://a3b8-206-12-14-98.ngrok-free.app/chat', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ transcript }), // Send the transcript as JSON
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ transcript }),
   })
     .then((response) => response.json())
-    .then((data) => {
-      console.log('Backend response:', data);
-    })
-    .catch((error) => {
-      console.error('Error sending transcript to backend:', error);
-    });
+    .then((data) => console.log('Backend response:', data))
+    .catch((error) => console.error('Error sending transcript to backend:', error));
+}
+
+// Poll for server responses
+// function getServerResponse() {
+//   fetch('https://a3b8-206-12-14-98.ngrok-free.app/response', {
+//     method: 'GET',
+//     headers: { 'Content-Type': 'application/json' },
+//   })
+//     .then((response) => response.json())
+//     .then((data) => {
+//       console.log('Received server response:', data);
+//       if (data?.message) {
+//         speakText(data.message);
+//       }
+//     })
+//     .catch((error) => console.error('Error fetching server response:', error));
+// }
+
+// Polling management
+function startPolling() {
+  pollingInterval = setInterval(getServerResponse, 5000);
+}
+function stopPolling() {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+  }
 }

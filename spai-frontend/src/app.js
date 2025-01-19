@@ -41,6 +41,7 @@ export function initializeSpeechRecognition(onResult, onError) {
   return recognition;
 }
 
+
 // Utility function to upload to Supabase
 export async function uploadToSupabase(blob, fileName) {
   if (!supabase) {
