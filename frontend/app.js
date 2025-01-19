@@ -7,6 +7,10 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Endpoints for HTTP interactions
+// const HTTP_URL = 'http://YOUR_LLM_BACKEND_DOMAIN/upload';
+const LLM_TEXT_URL = 'http://127.0.0.1:8000/chat'
+
 // DOM elements
 const videoElement = document.getElementById('preview');
 const startButton = document.getElementById('startCapture');
