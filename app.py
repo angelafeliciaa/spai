@@ -8,7 +8,7 @@ from ollama import chat
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from llm.llama import ask_question
+from llm.llama import ask_question, summarize
 from dotenv import load_dotenv
 
 from supabase import create_client, Client
@@ -38,11 +38,11 @@ def clear_user_states():
 
 def store_summary(user_id: str, summary: str):
     try:
-        # Update the existing user interaction with the conversation summary
         response = supabase.table("user_interactions") \
             .update({"conversation_summary": summary}) \
             .eq("user_id", user_id.lower()) \
             .execute()
+        print(response)
         
         if response.error:
             print(f"Error updating summary for user_id={user_id}: {response.error}")
@@ -57,6 +57,7 @@ def store_summary(user_id: str, summary: str):
 def chat_endpoint(req: ChatRequest):
     user_id = req.user_id.lower()
     user_text = req.text.strip() if req.text else ""
+    user_history = req.history.strip() if req.history else ""
 
     state = user_states.get(user_id)
     if not state:
@@ -71,12 +72,13 @@ def chat_endpoint(req: ChatRequest):
     state["last_timestamp"] = current_time
     state["history"].append(user_text)
 
-    if elapsed > 30 and len(state["history"]) > 1:
+    if elapsed > 10 and len(state["history"]) > 1:
         if state["history"]:
-            summary_prompt = "Summarize the user's questions so far:\n"
+            summary_prompt = ""
             for idx, question in enumerate(state["history"], start=1):
                 summary_prompt += f"{idx}. {question}\n"
-            summary_answer = ask_question(summary_prompt)
+            summary_answer = summarize(user_history, summary_prompt)
+
             store_summary(user_id, summary_answer)
             clear_user_states()
         return ChatResponse(response='')
