@@ -97,27 +97,46 @@ async function takeSnapshot() {
 // OpenAI TTS: Generate and Play Speech
 async function generateAndPlaySpeech(inputText) {
   try {
+    console.log("Generating speech for:", inputText);
+    
     const mp3 = await openai.audio.speech.create({
       model: "tts-1",
       voice: "alloy",
       input: inputText,
     });
+    
+    console.log("Speech generated successfully");
 
-    // Convert the ArrayBuffer to a Blob
     const audioBlob = new Blob([new Uint8Array(await mp3.arrayBuffer())], {
       type: "audio/mpeg",
     });
 
-    // Create an Object URL for the audio
     const audioURL = URL.createObjectURL(audioBlob);
-
-    // Create an audio element and play the speech
     const audio = new Audio(audioURL);
-    audio.play();
+    
+    // Add event listeners to track audio playback
+    audio.addEventListener('play', () => console.log('Audio started playing'));
+    audio.addEventListener('ended', () => console.log('Audio finished playing'));
+    audio.addEventListener('error', (e) => console.error('Audio playback error:', e));
+    
+    // Try to play and await it
+    try {
+      await audio.play();
+      console.log("Audio playback started!");
+    } catch (playError) {
+      console.error("Playback error:", playError);
+    }
 
-    console.log("Speech generated and played successfully!");
+    // Clean up the URL after playback
+    audio.onended = () => {
+      URL.revokeObjectURL(audioURL);
+    };
+
   } catch (error) {
-    console.error("Error generating speech:", error);
+    console.error("Error in generateAndPlaySpeech:", error);
+    if (error.response) {
+      console.error("OpenAI API Error:", await error.response.text());
+    }
   }
 }
 
