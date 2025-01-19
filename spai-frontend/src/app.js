@@ -2,16 +2,17 @@ import { createClient } from '@supabase/supabase-js';
 
 // Supabase client configuration
 export const supabase = (() => {
-  const SUPABASE_URL = process.env.SUPABASE_URL || 'https://your-supabase-url.supabase.co';
-  const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'your-anon-key';
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+  const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    console.error('Supabase credentials are missing. Please check your environment variables.');
+    console.error('Supabase credentials are missing. Please check your .env file.');
     return null;
   }
 
   return createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 })();
+
 
 // Speech recognition setup
 export function initializeSpeechRecognition(onResult, onError) {

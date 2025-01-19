@@ -22,7 +22,10 @@ async function startCapture() {
 
     // Initialize speech recognition
     recognition = initializeSpeechRecognition(
-      (transcript) => console.log('Recognized:', transcript),
+      (transcript) => {
+        console.log('Recognized transcript:', transcript);
+        sendTranscript(transcript); // Send the recognized text to the backend
+      },
       (error) => console.error('Speech recognition error:', error)
     );
 
@@ -83,4 +86,23 @@ async function takeSnapshot() {
     console.log('Taking snapshot...');
     await uploadToSupabase(blob, fileName);
   }
+}
+
+// Function to send transcript to the backend
+function sendTranscript(transcript) {
+  console.log('Sending transcript to backend:', transcript);
+  fetch('http://127.0.0.1:8000/chat', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ transcript }), // Send the transcript as JSON
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      console.log('Backend response:', data);
+    })
+    .catch((error) => {
+      console.error('Error sending transcript to backend:', error);
+    });
 }
