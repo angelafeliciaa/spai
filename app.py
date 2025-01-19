@@ -33,11 +33,6 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     response: str
 
-@app.get("/")
-def home():
-    print("Works")
-    return "Works"
-
 @app.post("/chat", response_model=ChatResponse)
 def chat_endpoint(req: ChatRequest):
     user_id = req.user_id
