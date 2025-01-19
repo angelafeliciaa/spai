@@ -59,7 +59,7 @@ def chat_endpoint(req: ChatRequest):
 
         # Reply that we stored the name, and ask how to help
         return ChatResponse(
-            response=f"Team name '{team_name}' noted. How can I help you?"
+            response=f"How can I help you?"
         )
 
     #
